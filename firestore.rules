@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Colección de historias — Líneas y Letras
+    match /stories/{storyId} {
+
+      // Lectura pública: solo historias publicadas.
+      // Las consultas con where("published", "==", true) son válidas.
+      allow get: if resource.data.published == true;
+      allow list: if resource.data.published == true;
+
+      // Escritura solo desde el servidor (Firebase Admin SDK).
+      // Cualquier cliente web queda bloqueado.
+      allow create, update, delete: if false;
+    }
+
+    // Denegar acceso a cualquier otra colección
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

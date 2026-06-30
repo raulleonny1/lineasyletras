@@ -1,52 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/components/providers/auth-provider";
-import { SiteChrome } from "@/components/layout/site-chrome";
-import { SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
+import { Geist, Lora } from "next/font/google";
+import { FirebaseAnalytics } from "@/components/providers/firebase-analytics";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
 });
-
-export const metadata: Metadata = {
-  metadataBase: new URL("https://archivum-noctis.vercel.app"),
-  title: {
-    default: SITE_NAME,
-    template: `%s · ${SITE_NAME}`,
-  },
-  description: SITE_TAGLINE,
-  openGraph: {
-    title: SITE_NAME,
-    description: SITE_TAGLINE,
-    type: "website",
-    locale: "es_ES",
-    images: ["/logo.png"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: SITE_NAME,
-    description: SITE_TAGLINE,
-    images: ["/logo.png"],
-  },
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-  },
-};
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#312e81",
+};
+
+export const metadata: Metadata = {
+  title: "Líneas y Letras — Literatura, fe y palabras que inspiran",
+  description:
+    "Lee, escribe y comparte parábolas, lecciones de vida y relatos profundos en Líneas y Letras.",
+  applicationName: "Líneas y Letras",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Líneas y Letras",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
@@ -55,12 +42,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark">
-      <body className={`${inter.variable} ${cormorant.variable} antialiased`}>
-        <AuthProvider>
-          <SiteChrome>{children}</SiteChrome>
-          <Toaster theme="dark" />
-        </AuthProvider>
+    <html lang="es" className={`${geistSans.variable} ${lora.variable} h-full`}>
+      <body className="min-h-full flex flex-col font-sans overscroll-none">
+        {children}
+        <FirebaseAnalytics />
       </body>
     </html>
   );

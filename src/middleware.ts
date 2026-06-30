@@ -1,12 +1,27 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { COOKIE_NAME, verifySessionTokenEdge } from "@/lib/auth/admin-session-edge";
 
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/admin/login")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/admin")) {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    const valid = await verifySessionTokenEdge(token);
+    if (!valid) {
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/admin/:path*"],
 };
