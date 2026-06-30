@@ -13,10 +13,14 @@ import type { Story, StoryInput } from "@/types/story";
 import { buildStoryFromInput } from "@/lib/stories/utils";
 import { getFirestoreDb } from "./config";
 import { getAdminFirestore } from "./admin";
+import { normalizeCoverImageUrl } from "./storage-url";
 
 const COLLECTION = "stories";
 
 function mapDataToStory(id: string, data: DocumentData): Story {
+  const hasEmbeddedData = Boolean(data.coverImageData);
+  const rawCover = data.coverImageUrl as string | undefined;
+
   return {
     id,
     title: data.title as string,
@@ -28,7 +32,7 @@ function mapDataToStory(id: string, data: DocumentData): Story {
     readTime: data.readTime as string,
     date: data.date as string,
     color: data.color as string,
-    coverImageUrl: data.coverImageUrl as string | undefined,
+    coverImageUrl: normalizeCoverImageUrl(id, rawCover, hasEmbeddedData),
     published: data.published !== false,
     source: (data.source as Story["source"]) || "admin",
     isUserCreated: data.source === "user",

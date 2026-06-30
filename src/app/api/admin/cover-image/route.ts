@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth/admin-session";
-import { getAdminFirestore } from "@/lib/firebase/admin";
-import {
-  uploadCoverToStorage,
-  saveCoverFallback,
-  removeCoverImage,
-} from "@/lib/firebase/storage";
+import { saveStoryCover, removeCoverImage } from "@/lib/firebase/storage";
+import { adminSdkGuard } from "@/lib/firebase/admin-sdk-guard";
 
 function isAdmin(request: NextRequest): boolean {
   return verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
@@ -15,6 +11,9 @@ export async function POST(request: NextRequest) {
   if (!isAdmin(request)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  const sdkError = adminSdkGuard();
+  if (sdkError) return sdkError;
 
   const form = await request.formData();
   const storyId = String(form.get("storyId") ?? "").trim();
@@ -36,28 +35,22 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const contentType = file.type || "image/jpeg";
 
-  let coverImageUrl = await uploadCoverToStorage(storyId, buffer, contentType);
-
-  if (!coverImageUrl) {
-    coverImageUrl = await saveCoverFallback(storyId, buffer);
-  } else {
-    const adminDb = getAdminFirestore();
-    if (adminDb) {
-      await adminDb.collection("stories").doc(storyId).update({
-        coverImageUrl,
-        coverImageData: null,
-        updatedAt: new Date(),
-      });
-    }
+  try {
+    const coverImageUrl = await saveStoryCover(storyId, buffer, contentType);
+    return NextResponse.json({ coverImageUrl });
+  } catch (error) {
+    console.error("Error al guardar portada:", error);
+    return NextResponse.json({ error: "No se pudo guardar la imagen." }, { status: 500 });
   }
-
-  return NextResponse.json({ coverImageUrl });
 }
 
 export async function DELETE(request: NextRequest) {
   if (!isAdmin(request)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  const sdkError = adminSdkGuard();
+  if (sdkError) return sdkError;
 
   const storyId = request.nextUrl.searchParams.get("storyId")?.trim();
   if (!storyId) {

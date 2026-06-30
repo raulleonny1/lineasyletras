@@ -1,10 +1,10 @@
 import { getStorage } from "firebase-admin/storage";
 import { getApps } from "firebase-admin/app";
 import { getAdminFirestore } from "./admin";
+import { buildFirebaseStoragePublicUrl, coverApiUrl } from "./storage-url";
 
 function getBucketName(): string | null {
-  const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim();
-  return bucket || null;
+  return process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() || null;
 }
 
 export function isStorageConfigured(): boolean {
@@ -35,23 +35,23 @@ export async function uploadCoverToStorage(
     try {
       await file.makePublic();
     } catch {
-      /* puede estar ya público o reglas distintas */
+      /* ignore */
     }
 
-    return `https://storage.googleapis.com/${bucketName}/${path}`;
+    return buildFirebaseStoragePublicUrl(bucketName, path);
   } catch (error) {
     console.error("Error al subir portada a Storage:", error);
     return null;
   }
 }
 
+/** Guarda la imagen en Firestore y devuelve URL estable vía /api/covers (funciona en Vercel). */
 export async function saveCoverFallback(
   storyId: string,
   buffer: Buffer
 ): Promise<string> {
   const adminDb = getAdminFirestore();
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const coverImageUrl = `${baseUrl}/api/covers/${storyId}`;
+  const coverImageUrl = coverApiUrl(storyId);
 
   if (adminDb) {
     await adminDb.collection("stories").doc(storyId).update({
@@ -101,4 +101,15 @@ export async function removeCoverImage(storyId: string): Promise<void> {
       }
     }
   }
+}
+
+/** Guarda portada: siempre URL fiable + copia en Firestore; Storage opcional. */
+export async function saveStoryCover(
+  storyId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  const coverImageUrl = await saveCoverFallback(storyId, buffer);
+  await uploadCoverToStorage(storyId, buffer, contentType);
+  return coverImageUrl;
 }
