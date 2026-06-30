@@ -1,38 +1,66 @@
+import type { Metadata } from "next";
 import SendaDeLuz from "@/components/senda-de-luz/senda-de-luz";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+import { getPublicStory } from "@/lib/stories/get-public-story";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const res = await fetch(`${base}/api/stories/${id}`, { cache: "no-store" });
-    if (res.ok) {
-      const { story } = await res.json();
-      const metadata: Record<string, unknown> = {
-        title: `${story.title} — Líneas y Letras`,
-        description: story.summary,
-        openGraph: {
-          title: `${story.title} — Líneas y Letras`,
-          description: story.summary,
-          type: "article",
-          url: `${base}/historia/${id}`,
-        },
-      };
-      if (story.coverImageUrl) {
-        metadata.openGraph = {
-          ...(metadata.openGraph as object),
-          images: [{ url: story.coverImageUrl, width: 800, height: 420, alt: story.title }],
-        };
-      }
-      return metadata;
-    }
-  } catch {
-    /* fallback */
+  const story = await getPublicStory(id);
+  const pageUrl = absoluteUrl(`/historia/${id}`);
+
+  if (!story) {
+    return {
+      title: "Historia — Líneas y Letras",
+      description: "Literatura, fe y palabras que inspiran.",
+      openGraph: {
+        title: "Líneas y Letras",
+        description: "Literatura, fe y palabras que inspiran.",
+        url: pageUrl,
+        siteName: "Líneas y Letras",
+        type: "article",
+        images: [{ url: absoluteUrl(`/historia/${id}/opengraph-image`), width: 1200, height: 630 }],
+      },
+    };
   }
-  return { title: "Historia — Líneas y Letras" };
+
+  const title = `${story.title} — Líneas y Letras`;
+  const description = story.summary || story.content.slice(0, 160);
+  const ogImage = story.coverImageUrl
+    ? story.coverImageUrl.startsWith("http")
+      ? story.coverImageUrl
+      : absoluteUrl(story.coverImageUrl)
+    : absoluteUrl(`/historia/${id}/opengraph-image`);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: story.title,
+      description,
+      url: pageUrl,
+      siteName: "Líneas y Letras",
+      type: "article",
+      locale: "es_ES",
+      images: [
+        {
+          url: ogImage,
+          width: story.coverImageUrl ? 800 : 1200,
+          height: story.coverImageUrl ? 420 : 630,
+          alt: story.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: story.title,
+      description,
+      images: [ogImage],
+    },
+  };
 }
 
 export default async function HistoriaPage({ params }: Props) {

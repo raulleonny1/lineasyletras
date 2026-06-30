@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Lora } from "next/font/google";
 import { FirebaseAnalytics } from "@/components/providers/firebase-analytics";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,10 +23,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "Líneas y Letras — Literatura, fe y palabras que inspiran",
   description:
     "Lee, escribe y comparte parábolas, lecciones de vida y relatos profundos en Líneas y Letras.",
   applicationName: "Líneas y Letras",
+  openGraph: {
+    siteName: "Líneas y Letras",
+    locale: "es_ES",
+    type: "website",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

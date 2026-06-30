@@ -1,8 +1,8 @@
 export function getStoryShareUrl(storyId: string): string {
   const base =
     typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || "https://lineasyletras.vercel.app";
+      ? process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || window.location.origin
+      : process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://lineasyletras.vercel.app";
   return `${base}/historia/${storyId}`;
 }
 

@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { initializeApp, getApps, cert, type App, type ServiceAccount } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
@@ -23,10 +23,16 @@ function loadServiceAccount(): ServiceAccount | null {
 }
 
 export function isAdminSdkConfigured(): boolean {
-  return Boolean(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim() ||
-      process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim()
-  );
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim()) return true;
+
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  if (!credPath) return false;
+
+  try {
+    return existsSync(resolve(process.cwd(), credPath));
+  } catch {
+    return false;
+  }
 }
 
 export function getAdminFirestore(): Firestore | null {

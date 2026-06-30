@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_NAME, verifySessionToken } from "@/lib/auth/admin-session";
-import { isAdminSdkConfigured } from "@/lib/firebase/admin";
+import { adminSdkGuard } from "@/lib/firebase/admin-sdk-guard";
 import { ADMIN_SDK_REQUIRED_MESSAGE } from "@/lib/firebase/admin-sdk-message";
 import {
   fetchAllStories,
@@ -13,13 +13,6 @@ import type { StoryInput } from "@/types/story";
 
 function isAdmin(request: NextRequest): boolean {
   return verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
-}
-
-function adminSdkGuard() {
-  if (!isAdminSdkConfigured()) {
-    return NextResponse.json({ error: ADMIN_SDK_REQUIRED_MESSAGE }, { status: 503 });
-  }
-  return null;
 }
 
 export async function GET(request: NextRequest) {
