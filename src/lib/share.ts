@@ -1,8 +1,10 @@
+import { getSiteUrl } from "@/lib/site-url";
+
 export function getStoryShareUrl(storyId: string): string {
   const base =
     typeof window !== "undefined"
       ? process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://lineasyletras.vercel.app";
+      : getSiteUrl();
   return `${base}/historia/${storyId}`;
 }
 

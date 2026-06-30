@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import SendaDeLuz from "@/components/senda-de-luz/senda-de-luz";
 import { absoluteUrl } from "@/lib/site-url";
-import { storyOgImageUrl } from "@/lib/firebase/storage-url";
+import { absoluteCoverImageUrl, storyOgImageUrl } from "@/lib/firebase/storage-url";
 import { getPublicStory } from "@/lib/stories/get-public-story";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const story = await getPublicStory(id);
   const pageUrl = absoluteUrl(`/historia/${id}`);
-  const ogImage = storyOgImageUrl(id);
+
+  const hasCover = Boolean(story?.coverImageUrl);
+  const ogImage = hasCover ? absoluteCoverImageUrl(id) : storyOgImageUrl(id);
+  const ogWidth = hasCover ? 800 : 1200;
+  const ogHeight = hasCover ? 420 : 630;
+  const ogType = hasCover ? "image/jpeg" : "image/png";
 
   if (!story) {
     return {
@@ -26,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         url: pageUrl,
         siteName: "Líneas y Letras",
         type: "article",
-        images: [{ url: ogImage, width: 1200, height: 630, type: "image/png" }],
+        images: [{ url: ogImage, width: ogWidth, height: ogHeight, type: ogType }],
       },
     };
   }
@@ -48,9 +53,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         {
           url: ogImage,
           secureUrl: ogImage,
-          width: 1200,
-          height: 630,
-          type: "image/png",
+          width: ogWidth,
+          height: ogHeight,
+          type: ogType,
           alt: story.title,
         },
       ],
