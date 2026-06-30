@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, type MouseEvent } from "react";
-import { getStoryShareUrl, nativeShare } from "@/lib/share";
-import { StoryShareModal } from "@/components/reading/story-share-modal";
+import {
+  getStoryShareUrl,
+  getFacebookShareUrl,
+  shareToInstagramPersonal,
+  nativeShare,
+} from "@/lib/share";
 
 const STORAGE_LIKED = "lineas_letras_liked";
-
-type SharePlatform = "facebook" | "instagram";
 
 type Props = {
   storyId: string;
@@ -32,7 +34,6 @@ export function StorySocialBar({
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
-  const [sharePlatform, setSharePlatform] = useState<SharePlatform | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_LIKED);
@@ -96,9 +97,17 @@ export function StorySocialBar({
     }
   };
 
-  const openShare = (e: MouseEvent, platform: SharePlatform) => {
+  const handleFacebook = (e: MouseEvent) => {
     e.stopPropagation();
-    setSharePlatform(platform);
+    const shareUrl = getFacebookShareUrl(storyId);
+    const popup = window.open(shareUrl, "_blank", "noopener,noreferrer,width=600,height=520");
+    if (!popup) window.location.href = shareUrl;
+  };
+
+  const handleInstagram = async (e: MouseEvent) => {
+    e.stopPropagation();
+    await shareToInstagramPersonal(storyId, title, summary);
+    onNotify("Texto copiado. Ábrelo en Instagram y pégalo.");
   };
 
   const handleCopyLink = async (e: MouseEvent) => {
@@ -119,55 +128,39 @@ export function StorySocialBar({
 
   const heartActive = liked || isFavorite;
 
-  const shareModal = sharePlatform ? (
-    <StoryShareModal
-      storyId={storyId}
-      title={title}
-      summary={summary}
-      coverImageUrl={coverImageUrl}
-      platform={sharePlatform}
-      onClose={() => setSharePlatform(null)}
-      onNotify={onNotify}
-    />
-  ) : null;
-
   if (compact) {
     return (
-      <>
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={handleHeart}
-            className="p-1.5 rounded-full hover:bg-rose-50 transition-colors"
-            title="Calificar con corazón"
-            aria-label="Calificar con corazón"
-          >
-            <HeartIcon filled={heartActive} className="w-4 h-4 text-rose-500" />
-          </button>
-          <button
-            onClick={(e) => openShare(e, "facebook")}
-            className="p-1.5 rounded-full hover:bg-blue-50 transition-colors"
-            title="Compartir en tu Facebook"
-            aria-label="Compartir en Facebook"
-          >
-            <FacebookIcon className="w-4 h-4 text-[#1877F2]" />
-          </button>
-          <button
-            onClick={(e) => openShare(e, "instagram")}
-            className="p-1.5 rounded-full hover:bg-pink-50 transition-colors"
-            title="Compartir en tu Instagram"
-            aria-label="Compartir en Instagram"
-          >
-            <InstagramIcon className="w-4 h-4 text-[#E4405F]" />
-          </button>
-        </div>
-        {shareModal}
-      </>
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={handleHeart}
+          className="p-1.5 rounded-full hover:bg-rose-50 transition-colors"
+          title="Calificar con corazón"
+          aria-label="Calificar con corazón"
+        >
+          <HeartIcon filled={heartActive} className="w-4 h-4 text-rose-500" />
+        </button>
+        <button
+          onClick={handleFacebook}
+          className="p-1.5 rounded-full hover:bg-blue-50 transition-colors"
+          title="Compartir en Facebook"
+          aria-label="Compartir en Facebook"
+        >
+          <FacebookIcon className="w-4 h-4 text-[#1877F2]" />
+        </button>
+        <button
+          onClick={handleInstagram}
+          className="p-1.5 rounded-full hover:bg-pink-50 transition-colors"
+          title="Compartir en Instagram"
+          aria-label="Compartir en Instagram"
+        >
+          <InstagramIcon className="w-4 h-4 text-[#E4405F]" />
+        </button>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/40 p-4 space-y-3">
+    <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/40 p-4 space-y-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           ¿Te gustó esta historia?
         </p>
@@ -197,19 +190,19 @@ export function StorySocialBar({
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500 mr-1 hidden sm:inline">Compartir:</span>
-            <button
-              onClick={(e) => openShare(e, "facebook")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold hover:opacity-90 transition-opacity"
-              title="Compartir en tu muro de Facebook"
-            >
-              <FacebookIcon className="w-4 h-4" />
-              Facebook
-            </button>
-            <button
-              onClick={(e) => openShare(e, "instagram")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] text-white text-xs font-bold hover:opacity-90 transition-opacity"
-              title="Compartir en tu Instagram"
-            >
+          <button
+            onClick={handleFacebook}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold hover:opacity-90 transition-opacity"
+            title="Compartir en Facebook"
+          >
+            <FacebookIcon className="w-4 h-4" />
+            Facebook
+          </button>
+          <button
+            onClick={handleInstagram}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] text-white text-xs font-bold hover:opacity-90 transition-opacity"
+            title="Compartir en Instagram"
+          >
               <InstagramIcon className="w-4 h-4" />
               Instagram
             </button>
@@ -230,9 +223,7 @@ export function StorySocialBar({
             </button>
           </div>
         </div>
-      </div>
-      {shareModal}
-    </>
+    </div>
   );
 }
 
