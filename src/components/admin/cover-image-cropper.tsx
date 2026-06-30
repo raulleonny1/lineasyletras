@@ -20,8 +20,13 @@ type Props = {
 const PREVIEW_W = 320;
 const PREVIEW_H = Math.round(PREVIEW_W / COVER_ASPECT);
 
+function revokeIfBlob(url: string | null) {
+  if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+}
+
 export function CoverImageCropper({ currentUrl, onChange }: Props) {
   const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState<CoverCropState>(getInitialCropState());
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl ?? null);
   const [error, setError] = useState("");
@@ -30,9 +35,10 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
 
   useEffect(() => {
     return () => {
-      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+      revokeIfBlob(previewUrl);
+      revokeIfBlob(sourceUrl);
     };
-  }, [previewUrl]);
+  }, [previewUrl, sourceUrl]);
 
   const applyCrop = useCallback(
     async (img: HTMLImageElement, state: CoverCropState) => {
@@ -40,8 +46,10 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
       try {
         const blob = await cropCoverToBlob(img, PREVIEW_W, PREVIEW_H, state);
         const url = URL.createObjectURL(blob);
-        if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(url);
+        setPreviewUrl((prev) => {
+          revokeIfBlob(prev);
+          return url;
+        });
         onChange(blob, url);
       } catch {
         setError("No se pudo recortar la imagen.");
@@ -49,17 +57,26 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
         setProcessing(false);
       }
     },
-    [onChange, previewUrl]
+    [onChange]
   );
+
+  function clearSource() {
+    revokeIfBlob(sourceUrl);
+    setSourceUrl(null);
+    setSourceImg(null);
+    setCrop(getInitialCropState());
+  }
 
   async function handleFile(file: File | null) {
     setError("");
     if (!file) return;
 
     try {
+      clearSource();
       const img = await readImageFile(file);
       const state = getInitialCropState();
       setSourceImg(img);
+      setSourceUrl(img.src.startsWith("blob:") ? img.src : null);
       setCrop(state);
       await applyCrop(img, state);
     } catch (err) {
@@ -84,12 +101,11 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
     if (!dragRef.current || !sourceImg) return;
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    const next = {
+    setCrop({
       ...crop,
       offsetX: dragRef.current.ox + dx,
       offsetY: dragRef.current.oy + dy,
-    };
-    setCrop(next);
+    });
   }
 
   function onPointerUp(e: PointerEvent<HTMLDivElement>) {
@@ -100,16 +116,19 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
   }
 
   function handleRemove() {
-    setSourceImg(null);
-    setCrop(getInitialCropState());
-    if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    clearSource();
+    setPreviewUrl((prev) => {
+      revokeIfBlob(prev);
+      return null;
+    });
     onChange(null, null);
   }
 
   const displayed = sourceImg
     ? getDisplayedImageSize(sourceImg, PREVIEW_W, PREVIEW_H, crop.scale)
     : null;
+
+  const cropImageSrc = sourceUrl ?? sourceImg?.src ?? "";
 
   return (
     <div className="space-y-3">
@@ -153,7 +172,7 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
             📷 Elegir imagen
           </label>
 
-          {sourceImg && (
+          {sourceImg && displayed && (
             <div className="space-y-2">
               <p className="text-xs font-semibold text-slate-500 uppercase">
                 Ajustar recorte (arrastra para mover)
@@ -166,21 +185,19 @@ export function CoverImageCropper({ currentUrl, onChange }: Props) {
                 onPointerUp={onPointerUp}
                 onPointerLeave={onPointerUp}
               >
-                {displayed && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={sourceImg.src}
-                    alt=""
-                    draggable={false}
-                    className="absolute max-w-none select-none pointer-events-none"
-                    style={{
-                      width: displayed.width,
-                      height: displayed.height,
-                      left: (PREVIEW_W - displayed.width) / 2 + crop.offsetX,
-                      top: (PREVIEW_H - displayed.height) / 2 + crop.offsetY,
-                    }}
-                  />
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cropImageSrc}
+                  alt=""
+                  draggable={false}
+                  className="absolute max-w-none select-none pointer-events-none"
+                  style={{
+                    width: displayed.width,
+                    height: displayed.height,
+                    left: (PREVIEW_W - displayed.width) / 2 + crop.offsetX,
+                    top: (PREVIEW_H - displayed.height) / 2 + crop.offsetY,
+                  }}
+                />
               </div>
 
               <div className="flex items-center gap-3">

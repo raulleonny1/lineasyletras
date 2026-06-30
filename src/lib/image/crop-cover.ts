@@ -95,10 +95,7 @@ export function readImageFile(file: File): Promise<HTMLImageElement> {
 
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
+    img.onload = () => resolve(img);
     img.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error("No se pudo cargar la imagen."));

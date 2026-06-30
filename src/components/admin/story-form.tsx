@@ -131,7 +131,7 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
               Tamaño mediano. El sistema recorta y ajusta automáticamente al subirla.
             </p>
             <CoverImageCropper
-              currentUrl={coverRemoved ? undefined : initial?.coverImageUrl}
+              currentUrl={coverRemoved ? undefined : coverPreview ?? initial?.coverImageUrl}
               onChange={handleCoverChange}
             />
             {coverPreview && (
