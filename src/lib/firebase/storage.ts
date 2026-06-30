@@ -66,13 +66,26 @@ export async function saveCoverFallback(
 
 export async function getCoverImageBuffer(storyId: string): Promise<Buffer | null> {
   const adminDb = getAdminFirestore();
-  if (!adminDb) return null;
+  if (adminDb) {
+    try {
+      const snap = await adminDb.collection("stories").doc(storyId).get();
+      const data = snap.data();
+      if (data?.coverImageData) {
+        return Buffer.from(data.coverImageData as string, "base64");
+      }
+    } catch {
+      /* try storage fallback */
+    }
+  }
+
+  const bucketName = getBucketName();
+  const apps = getApps();
+  if (!bucketName || !apps.length) return null;
 
   try {
-    const snap = await adminDb.collection("stories").doc(storyId).get();
-    const data = snap.data();
-    if (!data?.coverImageData) return null;
-    return Buffer.from(data.coverImageData as string, "base64");
+    const bucket = getStorage(apps[0]).bucket(bucketName);
+    const [buffer] = await bucket.file(`covers/${storyId}.jpg`).download();
+    return buffer;
   } catch {
     return null;
   }

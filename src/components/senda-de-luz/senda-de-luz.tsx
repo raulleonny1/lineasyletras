@@ -9,7 +9,7 @@ import { filterStories } from "@/lib/stories/utils";
 import { saveAdminDraft } from "@/lib/admin/draft-storage";
 import { StorySocialBar } from "@/components/reading/story-social-bar";
 import { StoryComments } from "@/components/reading/story-comments";
-import { storyCoverHeaderClass, storyCoverHeaderStyle } from "@/lib/stories/cover";
+import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
 
 const STORAGE_FAVORITES = "lineas_letras_favorites";
 const LEGACY_FAVORITES = "senda_luz_favorites";
@@ -52,6 +52,10 @@ export default function SendaDeLuz({
   useEffect(() => {
     if (typeof window !== "undefined") {
       synthRef.current = window.speechSynthesis;
+      const warmVoices = () => synthRef.current?.getVoices();
+      warmVoices();
+      window.speechSynthesis.addEventListener("voiceschanged", warmVoices);
+      return () => window.speechSynthesis.removeEventListener("voiceschanged", warmVoices);
     }
   }, []);
 
@@ -162,6 +166,12 @@ export default function SendaDeLuz({
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "es-ES";
     utterance.rate = speechRate;
+
+    const voices = synthRef.current.getVoices();
+    const esVoice =
+      voices.find((v) => v.lang.startsWith("es") && !v.name.toLowerCase().includes("english")) ??
+      voices.find((v) => v.lang.startsWith("es"));
+    if (esVoice) utterance.voice = esVoice;
 
     utterance.onend = () => {
       setIsSpeaking(false);
@@ -519,7 +529,7 @@ export default function SendaDeLuz({
                             storyId={story.id}
                             title={story.title}
                             summary={story.summary}
-                            coverImageUrl={story.coverImageUrl}
+                            coverImageUrl={resolveStoryCoverSrc(story)}
                             isFavorite={isFav}
                             onToggleFavorite={toggleFavorite}
                             onNotify={showNotification}
@@ -659,11 +669,11 @@ export default function SendaDeLuz({
               className={`rounded-3xl p-6 md:p-10 shadow-md border border-slate-100 transition-all ${getThemeClasses()}`}
             >
               <div className="space-y-4">
-                {selectedStory.coverImageUrl && (
+                {resolveStoryCoverSrc(selectedStory) && (
                   <div className="rounded-2xl overflow-hidden -mx-1 md:-mx-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={selectedStory.coverImageUrl}
+                      src={resolveStoryCoverSrc(selectedStory)}
                       alt={selectedStory.title}
                       className="w-full h-44 md:h-52 object-cover"
                     />
@@ -786,7 +796,7 @@ export default function SendaDeLuz({
                     storyId={selectedStory.id}
                     title={selectedStory.title}
                     summary={selectedStory.summary}
-                    coverImageUrl={selectedStory.coverImageUrl}
+                    coverImageUrl={resolveStoryCoverSrc(selectedStory)}
                     isFavorite={favorites.includes(selectedStory.id)}
                     onToggleFavorite={toggleFavorite}
                     onNotify={showNotification}

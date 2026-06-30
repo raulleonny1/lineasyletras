@@ -47,25 +47,32 @@ function mapAdminDoc(snap: { id: string; data: () => DocumentData | undefined })
   return mapDataToStory(snap.id, snap.data() ?? {});
 }
 
-export async function fetchPublishedStories(): Promise<Story[]> {
-  const adminDb = getAdminFirestore();
-  if (adminDb) {
-    try {
-      const snapshot = await adminDb
-        .collection(COLLECTION)
-        .where("published", "==", true)
-        .orderBy("createdAt", "desc")
-        .get();
-      return snapshot.docs.map(mapAdminDoc);
-    } catch (error) {
-      console.error("Error al cargar historias publicadas (admin):", error);
-      return [];
-    }
+function sortStoriesByRecency(stories: Story[]): Story[] {
+  return [...stories].sort((a, b) => {
+    const dateCmp = (b.date || "").localeCompare(a.date || "");
+    if (dateCmp !== 0) return dateCmp;
+    return b.id.localeCompare(a.id);
+  });
+}
+
+async function queryPublishedWithAdmin(
+  adminDb: NonNullable<ReturnType<typeof getAdminFirestore>>
+): Promise<Story[]> {
+  try {
+    const snapshot = await adminDb
+      .collection(COLLECTION)
+      .where("published", "==", true)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map(mapAdminDoc);
+  } catch (indexedError) {
+    console.warn("Índice compuesto no disponible, usando consulta alternativa:", indexedError);
+    const snapshot = await adminDb.collection(COLLECTION).where("published", "==", true).get();
+    return sortStoriesByRecency(snapshot.docs.map(mapAdminDoc));
   }
+}
 
-  const db = getFirestoreDb();
-  if (!db) return [];
-
+async function queryPublishedWithClient(db: NonNullable<ReturnType<typeof getFirestoreDb>>): Promise<Story[]> {
   try {
     const q = query(
       collection(db, COLLECTION),
@@ -74,6 +81,29 @@ export async function fetchPublishedStories(): Promise<Story[]> {
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(mapClientDoc);
+  } catch (indexedError) {
+    console.warn("Índice compuesto no disponible (cliente), usando consulta alternativa:", indexedError);
+    const q = query(collection(db, COLLECTION), where("published", "==", true));
+    const snapshot = await getDocs(q);
+    return sortStoriesByRecency(snapshot.docs.map(mapClientDoc));
+  }
+}
+
+export async function fetchPublishedStories(): Promise<Story[]> {
+  const adminDb = getAdminFirestore();
+  if (adminDb) {
+    try {
+      return await queryPublishedWithAdmin(adminDb);
+    } catch (error) {
+      console.error("Error al cargar historias publicadas (admin):", error);
+    }
+  }
+
+  const db = getFirestoreDb();
+  if (!db) return [];
+
+  try {
+    return await queryPublishedWithClient(db);
   } catch (error) {
     console.error("Error al cargar historias publicadas:", error);
     return [];

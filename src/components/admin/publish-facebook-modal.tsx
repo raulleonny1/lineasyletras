@@ -1,17 +1,47 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { getFacebookShareUrl } from "@/lib/share";
+import { clientCoverImageSrc } from "@/lib/firebase/storage-url";
 
 type Props = {
   storyId: string;
   title: string;
   summary: string;
   coverImageUrl?: string;
+  coverPreview?: string | null;
   onClose: () => void;
 };
 
-export function PublishFacebookModal({ storyId, title, summary, coverImageUrl, onClose }: Props) {
+export function PublishFacebookModal({
+  storyId,
+  title,
+  summary,
+  coverImageUrl,
+  coverPreview,
+  onClose,
+}: Props) {
   const shareUrl = getFacebookShareUrl(storyId);
+  const [imgSrc, setImgSrc] = useState(() =>
+    clientCoverImageSrc(storyId, coverImageUrl, coverPreview)
+  );
+
+  useEffect(() => {
+    setImgSrc(clientCoverImageSrc(storyId, coverImageUrl, coverPreview));
+  }, [storyId, coverImageUrl, coverPreview]);
+
+  const hasCover = Boolean(imgSrc || coverImageUrl || coverPreview);
+
+  function handleImgError() {
+    if (coverPreview?.startsWith("blob:") && imgSrc !== coverPreview) {
+      setImgSrc(coverPreview);
+      return;
+    }
+    const apiPath = `/api/covers/${storyId}`;
+    if (imgSrc !== apiPath && (coverImageUrl || coverPreview)) {
+      setImgSrc(apiPath);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -24,10 +54,15 @@ export function PublishFacebookModal({ storyId, title, summary, coverImageUrl, o
           </p>
         </div>
 
-        {coverImageUrl && (
+        {imgSrc && (
           <div className="rounded-xl overflow-hidden border border-slate-200">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={coverImageUrl} alt={title} className="w-full h-40 object-cover" />
+            <img
+              src={imgSrc}
+              alt={title}
+              className="w-full h-40 object-cover"
+              onError={handleImgError}
+            />
           </div>
         )}
 
@@ -48,7 +83,7 @@ export function PublishFacebookModal({ storyId, title, summary, coverImageUrl, o
             </svg>
             Publicar en Facebook
           </a>
-          {!coverImageUrl && (
+          {!hasCover && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">
               Sin imagen de portada, Facebook mostrará solo el texto del enlace. Añade una imagen
               al editar la historia para mejor vista previa.

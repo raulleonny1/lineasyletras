@@ -210,7 +210,8 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
           storyId={facebookStory.id}
           title={facebookStory.title}
           summary={facebookStory.summary}
-          coverImageUrl={facebookStory.coverImageUrl ?? coverPreview ?? undefined}
+          coverImageUrl={facebookStory.coverImageUrl}
+          coverPreview={coverPreview}
           onClose={() => setFacebookStory(null)}
         />
       )}
