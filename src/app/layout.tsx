@@ -3,6 +3,7 @@ import { Geist, Lora } from "next/font/google";
 import { FirebaseAnalytics } from "@/components/providers/firebase-analytics";
 import { CookieConsentProvider } from "@/components/legal/cookie-consent";
 import { UserAuthProvider } from "@/components/providers/user-auth-provider";
+import { ADSENSE_CLIENT_ID, ADSENSE_SCRIPT_URL } from "@/lib/adsense";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -24,8 +25,6 @@ export const viewport: Viewport = {
   themeColor: "#312e81",
 };
 
-const ADSENSE_CLIENT = "ca-pub-3657043800068137";
-
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: "Líneas y Letras — Literatura, fe y palabras que inspiran",
@@ -45,6 +44,9 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  other: {
+    "google-adsense-account": ADSENSE_CLIENT_ID,
+  },
 };
 
 export default function RootLayout({
@@ -55,11 +57,8 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${geistSans.variable} ${lora.variable} h-full`}>
       <head>
-        <script
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-          crossOrigin="anonymous"
-        />
+        <meta name="google-adsense-account" content={ADSENSE_CLIENT_ID} />
+        <script async src={ADSENSE_SCRIPT_URL} crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col font-sans overscroll-none">
         <CookieConsentProvider>
