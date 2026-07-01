@@ -1,10 +1,24 @@
 import type { Story, StoryInput } from "@/types/story";
 import { STORY_COLORS } from "@/data/initial-stories";
+import {
+  flattenNovelToContent,
+  getStoryReadableText,
+  isNovelFormat,
+  normalizeNovelChapters,
+} from "@/lib/stories/novel";
 
 export function computeReadTime(content: string): string {
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
   const minutes = Math.max(1, Math.ceil(wordCount / 200));
   return `${minutes} min`;
+}
+
+export function computeReadTimeFromInput(input: StoryInput): string {
+  if (input.readTime) return input.readTime;
+  if (isNovelFormat(input.format) && input.novel?.chapters?.length) {
+    return computeReadTime(flattenNovelToContent(input.novel.chapters));
+  }
+  return computeReadTime(input.content ?? "");
 }
 
 export function parseTagsInput(raw: string): string[] {
@@ -21,6 +35,15 @@ export function pickRandomColor(): string {
 
 export function buildStoryFromInput(input: StoryInput, id?: string): Story {
   const today = new Date().toISOString().split("T")[0];
+  const format = input.format ?? "relato_corto";
+  const novel =
+    isNovelFormat(format) && input.novel?.chapters?.length
+      ? { chapters: normalizeNovelChapters(input.novel.chapters) }
+      : undefined;
+  const content = novel
+    ? flattenNovelToContent(novel.chapters)
+    : (input.content ?? "").trim();
+
   return {
     id: id ?? Date.now().toString(),
     title: input.title.trim(),
@@ -28,12 +51,14 @@ export function buildStoryFromInput(input: StoryInput, id?: string): Story {
     category: input.category,
     summary:
       input.summary.trim() ||
-      input.content.trim().substring(0, 120) + (input.content.length > 120 ? "..." : ""),
-    content: input.content.trim(),
+      content.substring(0, 120) + (content.length > 120 ? "..." : ""),
+    content,
     tags: input.tags,
-    readTime: input.readTime ?? computeReadTime(input.content),
+    readTime: computeReadTimeFromInput({ ...input, content }),
     date: input.date ?? today,
     color: input.color || pickRandomColor(),
+    format,
+    novel,
     coverImageUrl: input.coverImageUrl,
     published: input.published ?? false,
     premium: input.premium ?? false,

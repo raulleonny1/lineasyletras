@@ -9,6 +9,10 @@ export interface Story {
   readTime: string;
   date: string;
   color: string;
+  /** Formato de la obra. Por defecto relato corto. */
+  format?: import("@/types/story-format").StoryFormat;
+  /** Estructura de capítulos y escenas (solo novelas). */
+  novel?: import("@/types/story-format").NovelStructure;
   /** URL de portada recortada (Facebook, tarjetas). Opcional. */
   coverImageUrl?: string;
   published?: boolean;

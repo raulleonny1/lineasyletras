@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseUserSessionToken } from "@/lib/auth/user-session";
 import { getUserById } from "@/lib/firebase/users";
 import { createStory, fetchStoriesByAuthorId } from "@/lib/firebase/stories";
-import { computeReadTime, parseTagsInput } from "@/lib/stories/utils";
+import { computeReadTimeFromInput, parseTagsInput } from "@/lib/stories/utils";
+import { validateStoryBody, buildStoryPayloadFields } from "@/lib/stories/story-body";
 import type { StoryInput } from "@/types/story";
 
 export async function GET(request: NextRequest) {
@@ -34,10 +35,24 @@ export async function POST(request: NextRequest) {
   }
 
   const title = body.title?.trim();
-  const content = body.content?.trim();
-  if (!title || !content) {
-    return NextResponse.json({ error: "Título y contenido son obligatorios" }, { status: 400 });
+  if (!title) {
+    return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 });
   }
+
+  const bodyError = validateStoryBody({
+    format: body.format,
+    content: body.content,
+    novel: body.novel,
+  });
+  if (bodyError) {
+    return NextResponse.json({ error: bodyError }, { status: 400 });
+  }
+
+  const bodyFields = buildStoryPayloadFields({
+    format: body.format,
+    content: body.content,
+    novel: body.novel,
+  });
 
   const authorName = `${user.firstName} ${user.lastName}`.trim();
   const tags = Array.isArray(body.tags) ? body.tags : parseTagsInput(String(body.tags ?? ""));
@@ -47,13 +62,21 @@ export async function POST(request: NextRequest) {
     author: body.author?.trim() || authorName,
     category: body.category?.trim() || "Fe y Esperanza",
     summary: body.summary?.trim() || "",
-    content,
+    ...bodyFields,
     tags,
     color: body.color || "from-indigo-500 to-purple-600",
     published: false,
     premium: false,
     source: "user",
-    readTime: computeReadTime(content),
+    readTime: computeReadTimeFromInput({
+      title,
+      author: authorName,
+      category: body.category?.trim() || "Fe y Esperanza",
+      summary: body.summary?.trim() || "",
+      tags,
+      color: body.color || "from-indigo-500 to-purple-600",
+      ...bodyFields,
+    }),
     authorId: userId,
   });
 

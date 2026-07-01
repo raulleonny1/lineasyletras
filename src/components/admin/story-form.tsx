@@ -2,11 +2,19 @@
 
 import { useState, type FormEvent } from "react";
 import type { Story, StoryInput } from "@/types/story";
+import type { StoryFormat, NovelChapter } from "@/types/story-format";
 import { STORY_COLORS } from "@/data/initial-stories";
-import { computeReadTime, parseTagsInput } from "@/lib/stories/utils";
+import { computeReadTimeFromInput, parseTagsInput } from "@/lib/stories/utils";
+import { createEmptyChapter } from "@/lib/stories/novel";
+import {
+  buildStoryPayloadFields,
+  initialNovelChaptersFromStory,
+  validateStoryBody,
+} from "@/lib/stories/story-body";
 import { CategorySelect } from "@/components/admin/category-select";
 import { CoverImageCropper } from "@/components/admin/cover-image-cropper";
 import { PublishFacebookModal } from "@/components/admin/publish-facebook-modal";
+import { StoryBodyEditor } from "@/components/writing/story-body-editor";
 import type { CoverUploadExtras, PublishResult } from "@/lib/admin/cover-upload";
 
 type StoryFormProps = {
@@ -21,6 +29,10 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
   const [category, setCategory] = useState(initial?.category ?? "Fe y Esperanza");
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
+  const [format, setFormat] = useState<StoryFormat>(initial?.format ?? "relato_corto");
+  const [chapters, setChapters] = useState<NovelChapter[]>(() =>
+    initialNovelChaptersFromStory(initial?.format, initial?.novel)
+  );
   const [tagsRaw, setTagsRaw] = useState(initial?.tags.join(", ") ?? "");
   const [color, setColor] = useState(initial?.color ?? STORY_COLORS[0]);
   const [published, setPublished] = useState(initial?.published ?? false);
@@ -38,14 +50,29 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
     setCoverRemoved(blob === null && previewUrl === null);
   }
 
+  function handleFormatChange(next: StoryFormat) {
+    setFormat(next);
+    if (next === "novela" && chapters.length === 0) {
+      setChapters([createEmptyChapter()]);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!title.trim() || !content.trim()) {
-      setError("El título y el contenido son obligatorios.");
+    if (!title.trim()) {
+      setError("El título es obligatorio.");
       return;
     }
+
+    const bodyError = validateStoryBody({ format, content, novel: { chapters } });
+    if (bodyError) {
+      setError(bodyError);
+      return;
+    }
+
+    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
 
     setSaving(true);
     try {
@@ -59,12 +86,20 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
           author: author.trim(),
           category,
           summary: summary.trim(),
-          content: content.trim(),
+          ...bodyFields,
           tags: parseTagsInput(tagsRaw),
           color,
           published,
           premium,
-          readTime: computeReadTime(content),
+          readTime: computeReadTimeFromInput({
+            title,
+            author,
+            category,
+            summary,
+            tags: parseTagsInput(tagsRaw),
+            color,
+            ...bodyFields,
+          }),
           source: "admin",
           coverImageUrl: coverRemoved ? undefined : initial?.coverImageUrl,
         },
@@ -152,17 +187,15 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
           </div>
 
           <div className="space-y-1 md:col-span-2">
-            <label className="text-xs font-bold text-slate-500 uppercase">Contenido *</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={14}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 font-serif leading-relaxed"
-              required
+            <StoryBodyEditor
+              format={format}
+              onFormatChange={handleFormatChange}
+              content={content}
+              onContentChange={setContent}
+              chapters={chapters}
+              onChaptersChange={setChapters}
+              disabled={saving}
             />
-            <p className="text-xs text-slate-400 text-right">
-              {content.trim() ? content.trim().split(/\s+/).length : 0} palabras · {computeReadTime(content)}
-            </p>
           </div>
 
           <div className="space-y-1">

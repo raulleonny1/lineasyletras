@@ -10,6 +10,8 @@ import { StorySocialBar } from "@/components/reading/story-social-bar";
 import { StoryComments } from "@/components/reading/story-comments";
 import { StoryCard } from "@/components/reading/story-card";
 import { UserAccountNav } from "@/components/auth/user-account-nav";
+import { StoryReaderBody } from "@/components/reading/story-reader-body";
+import { getStoryReadableText } from "@/lib/stories/novel";
 import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
 
 function markStoryReadIfLoggedIn(storyId: string) {
@@ -167,7 +169,7 @@ export default function SendaDeLuz({
 
     synthRef.current.cancel();
 
-    const cleanText = `${selectedStory.title}. Escrito por ${selectedStory.author}. ${selectedStory.content}`;
+    const cleanText = `${selectedStory.title}. Escrito por ${selectedStory.author}. ${getStoryReadableText(selectedStory)}`;
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "es-ES";
     utterance.rate = speechRate;
@@ -657,13 +659,9 @@ export default function SendaDeLuz({
 
                 {/* CUERPO DE LA HISTORIA */}
                 <div
-                  className={`mt-6 space-y-5 leading-relaxed tracking-normal text-justify ${fontSize} border-t pt-6 border-slate-100 dark:border-slate-800`}
+                  className={`mt-6 border-t pt-6 border-slate-100 dark:border-slate-800`}
                 >
-                  {selectedStory.content.split("\n\n").map((paragraph, i) => (
-                    <p key={i} className="whitespace-pre-line">
-                      {paragraph}
-                    </p>
-                  ))}
+                  <StoryReaderBody story={selectedStory} fontSize={fontSize} />
                 </div>
 
                 {/* Etiquetas y acciones sociales */}

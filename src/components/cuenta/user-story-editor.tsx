@@ -2,10 +2,20 @@
 
 import { useMemo, useState } from "react";
 import type { Story } from "@/types/story";
+import type { StoryFormat, NovelChapter } from "@/types/story-format";
 import { STORY_COLORS } from "@/data/initial-stories";
-import { computeReadTime, parseTagsInput } from "@/lib/stories/utils";
+import { computeReadTimeFromInput, parseTagsInput } from "@/lib/stories/utils";
+import { createEmptyChapter } from "@/lib/stories/novel";
+import {
+  buildStoryPayloadFields,
+  initialNovelChaptersFromStory,
+  validateStoryBody,
+} from "@/lib/stories/story-body";
 import { CategorySelect } from "@/components/admin/category-select";
+import { StoryBodyEditor } from "@/components/writing/story-body-editor";
+import { StoryReaderBody } from "@/components/reading/story-reader-body";
 import { storyCoverHeaderClass, storyCoverHeaderStyle } from "@/lib/stories/cover";
+import { formatLabel } from "@/types/story-format";
 
 type Props = {
   authorName: string;
@@ -18,38 +28,68 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
   const [category, setCategory] = useState("Fe y Esperanza");
   const [summary, setSummary] = useState("");
   const [content, setContent] = useState("");
+  const [format, setFormat] = useState<StoryFormat>("relato_corto");
+  const [chapters, setChapters] = useState<NovelChapter[]>(() =>
+    initialNovelChaptersFromStory()
+  );
   const [tagsRaw, setTagsRaw] = useState("");
   const [color, setColor] = useState<string>(STORY_COLORS[0]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const previewStory = useMemo<Story>(
-    () => ({
+  function handleFormatChange(next: StoryFormat) {
+    setFormat(next);
+    if (next === "novela" && chapters.length === 0) {
+      setChapters([createEmptyChapter()]);
+    }
+  }
+
+  const previewStory = useMemo<Story>(() => {
+    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
+    return {
       id: "preview",
       title: title.trim() || "Sin título",
       author: authorName,
       category,
       summary: summary.trim() || "Tu resumen aparecerá aquí…",
-      content: content.trim() || "Empieza a escribir tu historia en el panel izquierdo.",
+      ...bodyFields,
+      content:
+        bodyFields.content ||
+        "Empieza a escribir tu historia en el panel izquierdo.",
       tags: parseTagsInput(tagsRaw),
-      readTime: computeReadTime(content),
+      readTime: computeReadTimeFromInput({
+        title,
+        author: authorName,
+        category,
+        summary,
+        tags: parseTagsInput(tagsRaw),
+        color,
+        ...bodyFields,
+      }),
       date: new Date().toISOString().slice(0, 10),
       color,
       source: "user",
       isUserCreated: true,
-    }),
-    [authorName, category, color, content, summary, tagsRaw, title]
-  );
+    };
+  }, [authorName, category, chapters, color, content, format, summary, tagsRaw, title]);
 
   async function handleSave() {
     setError("");
     setSuccess("");
 
-    if (!title.trim() || !content.trim()) {
-      setError("El título y el contenido son obligatorios.");
+    if (!title.trim()) {
+      setError("El título es obligatorio.");
       return;
     }
+
+    const bodyError = validateStoryBody({ format, content, novel: { chapters } });
+    if (bodyError) {
+      setError(bodyError);
+      return;
+    }
+
+    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
 
     setSaving(true);
     try {
@@ -60,7 +100,7 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
           title: title.trim(),
           category,
           summary: summary.trim(),
-          content: content.trim(),
+          ...bodyFields,
           tags: parseTagsInput(tagsRaw),
           color,
         }),
@@ -75,6 +115,8 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
       setTitle("");
       setSummary("");
       setContent("");
+      setFormat("relato_corto");
+      setChapters([createEmptyChapter()]);
       setTagsRaw("");
     } catch {
       setError("Error de conexión.");
@@ -88,7 +130,6 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
 
   return (
     <div className="h-full flex flex-col lg:flex-row min-h-0">
-      {/* Editor — panel izquierdo */}
       <div className="flex-1 min-w-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto">
         <div className="p-4 sm:p-6 space-y-4 max-w-xl">
           <div className="flex items-center justify-between gap-2">
@@ -165,19 +206,17 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase">Contenido *</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={12}
-              className={`${inputClass} font-serif leading-relaxed resize-y min-h-[200px]`}
-              placeholder="Escribe tu historia aquí…"
-            />
-            <p className="text-[11px] text-slate-400">
-              {content.trim() ? content.trim().split(/\s+/).length : 0} palabras · {computeReadTime(content)}
-            </p>
-          </div>
+          <StoryBodyEditor
+            format={format}
+            onFormatChange={handleFormatChange}
+            content={content}
+            onContentChange={setContent}
+            chapters={chapters}
+            onChaptersChange={setChapters}
+            disabled={saving}
+            textareaRows={10}
+            inputClass={`${inputClass} font-serif leading-relaxed`}
+          />
 
           <div className="flex gap-2 pt-2">
             <button
@@ -199,11 +238,10 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
         </div>
       </div>
 
-      {/* Vista previa — panel derecho */}
       <div className="flex-1 min-w-0 bg-slate-100 overflow-y-auto">
         <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-4">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">
-            Vista previa
+            Vista previa · {formatLabel(format)}
           </p>
 
           <article className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -221,11 +259,7 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
               <p className="text-slate-500 text-sm italic border-l-4 border-indigo-200 pl-3">
                 {previewStory.summary}
               </p>
-              <div className="text-slate-700 font-serif leading-relaxed whitespace-pre-wrap text-sm sm:text-base space-y-4">
-                {previewStory.content.split("\n\n").map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
-              </div>
+              <StoryReaderBody story={previewStory} fontSize="text-sm sm:text-base" />
               {previewStory.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
                   {previewStory.tags.map((tag) => (

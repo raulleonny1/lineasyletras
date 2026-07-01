@@ -10,6 +10,7 @@ import {
 import { getAdminStoryList } from "@/lib/stories/admin-list";
 import { INITIAL_STORIES } from "@/data/initial-stories";
 import type { StoryInput } from "@/types/story";
+import { validateStoryBody } from "@/lib/stories/story-body";
 
 function isAdmin(request: NextRequest): boolean {
   return verifySessionToken(request.cookies.get(COOKIE_NAME)?.value);
@@ -54,8 +55,16 @@ export async function POST(request: NextRequest) {
   }
 
   const input = body as StoryInput;
-  if (!input.title?.trim() || !input.content?.trim()) {
-    return NextResponse.json({ error: "Título y contenido son obligatorios" }, { status: 400 });
+  if (!input.title?.trim()) {
+    return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 });
+  }
+  const bodyError = validateStoryBody({
+    format: input.format,
+    content: input.content,
+    novel: input.novel,
+  });
+  if (bodyError) {
+    return NextResponse.json({ error: bodyError }, { status: 400 });
   }
 
   const story = await createStory({

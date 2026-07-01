@@ -11,6 +11,7 @@ import {
 import { FieldValue } from "firebase-admin/firestore";
 import type { Story, StoryInput } from "@/types/story";
 import { buildStoryFromInput } from "@/lib/stories/utils";
+import { isNovelFormat, normalizeNovelChapters } from "@/lib/stories/novel";
 import { getFirestoreDb } from "./config";
 import { getAdminFirestore } from "./admin";
 import { normalizeCoverImageUrl } from "./storage-url";
@@ -37,6 +38,8 @@ function mapDataToStory(id: string, data: DocumentData): Story {
     premium: Boolean(data.premium),
     source: (data.source as Story["source"]) || "admin",
     isUserCreated: data.source === "user",
+    format: (data.format as Story["format"]) || "relato_corto",
+    novel: data.novel as Story["novel"],
   };
 }
 
@@ -195,7 +198,9 @@ export async function createStory(input: StoryInputWithAuthor): Promise<Story | 
     published: story.published ?? false,
     premium: story.premium ?? false,
     source: story.source ?? "admin",
+    format: story.format ?? "relato_corto",
   };
+  if (story.novel) payload.novel = story.novel;
   if (input.authorId) payload.authorId = input.authorId;
 
   const adminDb = getAdminFirestore();
@@ -243,6 +248,8 @@ export async function updateStory(id: string, input: Partial<StoryInput>): Promi
   if (input.premium !== undefined) payload.premium = input.premium;
   if (input.date !== undefined) payload.date = input.date;
   if (input.readTime !== undefined) payload.readTime = input.readTime;
+  if (input.format !== undefined) payload.format = input.format;
+  if (input.novel !== undefined) payload.novel = input.novel;
   if ((input as StoryInputWithAuthor).authorId !== undefined) {
     payload.authorId = (input as StoryInputWithAuthor).authorId;
   }
