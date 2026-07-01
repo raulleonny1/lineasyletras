@@ -24,6 +24,8 @@ export const viewport: Viewport = {
   themeColor: "#312e81",
 };
 
+const ADSENSE_CLIENT = "ca-pub-3657043800068137";
+
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: "Líneas y Letras — Literatura, fe y palabras que inspiran",
@@ -52,6 +54,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${geistSans.variable} ${lora.variable} h-full`}>
+      <head>
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans overscroll-none">
         <CookieConsentProvider>
           <UserAuthProvider>{children}</UserAuthProvider>
