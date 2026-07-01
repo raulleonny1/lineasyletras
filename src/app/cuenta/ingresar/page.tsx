@@ -51,12 +51,20 @@ export default function IngresarPage() {
       title="Ingresar"
       subtitle="Introduce tu código personal de 4 dígitos."
       footer={
-        <p className="text-center text-sm text-slate-500">
-          ¿No tienes cuenta?{" "}
-          <Link href="/cuenta/registro" className="text-indigo-600 font-semibold hover:underline">
-            Crear cuenta
-          </Link>
-        </p>
+        <div className="text-center text-sm text-slate-500 space-y-2">
+          <p>
+            ¿No tienes cuenta?{" "}
+            <Link href="/cuenta/registro" className="text-indigo-600 font-semibold hover:underline">
+              Crear cuenta
+            </Link>
+          </p>
+          <p className="text-xs text-slate-400">
+            ¿Administrador?{" "}
+            <Link href="/admin/login" className="text-slate-600 font-semibold hover:underline">
+              Entrar con contraseña
+            </Link>
+          </p>
+        </div>
       }
     >
       <div className="space-y-4">

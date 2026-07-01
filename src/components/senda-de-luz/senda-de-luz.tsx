@@ -267,7 +267,7 @@ export default function SendaDeLuz({
               ❤️ Guardados ({favorites.length})
             </button>
             <Link
-              href="/admin"
+              href="/admin/login"
               className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800 text-white hover:bg-slate-700 transition-all"
             >
               ⚙️ Admin
@@ -819,7 +819,7 @@ export default function SendaDeLuz({
         </button>
 
         <Link
-          href="/admin"
+          href="/admin/login"
           className="flex flex-col items-center justify-center py-2 px-4 rounded-xl text-slate-500 hover:text-indigo-600 transition-all touch-target flex-1"
         >
           <svg
