@@ -59,6 +59,7 @@ export function buildStoryFromInput(input: StoryInput, id?: string): Story {
     color: input.color || pickRandomColor(),
     format,
     novel,
+    novelContinued: isNovelFormat(format) ? input.novelContinued !== false : undefined,
     coverImageUrl: input.coverImageUrl,
     published: input.published ?? false,
     premium: input.premium ?? false,

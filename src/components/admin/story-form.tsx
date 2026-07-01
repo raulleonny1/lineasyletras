@@ -33,6 +33,9 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
   const [chapters, setChapters] = useState<NovelChapter[]>(() =>
     initialNovelChaptersFromStory(initial?.format, initial?.novel)
   );
+  const [novelContinued, setNovelContinued] = useState(
+    initial?.format === "novela" ? initial?.novelContinued !== false : true
+  );
   const [tagsRaw, setTagsRaw] = useState(initial?.tags.join(", ") ?? "");
   const [color, setColor] = useState(initial?.color ?? STORY_COLORS[0]);
   const [published, setPublished] = useState(initial?.published ?? false);
@@ -52,8 +55,9 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
 
   function handleFormatChange(next: StoryFormat) {
     setFormat(next);
-    if (next === "novela" && chapters.length === 0) {
-      setChapters([createEmptyChapter()]);
+    if (next === "novela") {
+      if (chapters.length === 0) setChapters([createEmptyChapter()]);
+      setNovelContinued(true);
     }
   }
 
@@ -72,7 +76,12 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
       return;
     }
 
-    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
+    const bodyFields = buildStoryPayloadFields({
+      format,
+      content,
+      novel: { chapters },
+      novelContinued,
+    });
 
     setSaving(true);
     try {
@@ -194,6 +203,8 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
               onContentChange={setContent}
               chapters={chapters}
               onChaptersChange={setChapters}
+              novelContinued={novelContinued}
+              onNovelContinuedChange={setNovelContinued}
               disabled={saving}
             />
           </div>

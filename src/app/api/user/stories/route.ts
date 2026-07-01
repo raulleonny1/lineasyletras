@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     format: body.format,
     content: body.content,
     novel: body.novel,
+    novelContinued: body.novelContinued,
   });
 
   const authorName = `${user.firstName} ${user.lastName}`.trim();

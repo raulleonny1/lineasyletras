@@ -55,6 +55,10 @@ export function getStoryReadableText(story: Pick<Story, "content" | "format" | "
   return story.content;
 }
 
+export function countNovelChapters(story: Pick<Story, "novel">): number {
+  return story.novel?.chapters?.length ?? 0;
+}
+
 export function normalizeNovelChapters(chapters: NovelChapter[]): NovelChapter[] {
   return chapters.map((chapter) => ({
     id: chapter.id || createId("chapter"),

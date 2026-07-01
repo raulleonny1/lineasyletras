@@ -33,7 +33,8 @@ export function buildStoryPayloadFields(input: {
   format?: StoryFormat;
   content?: string;
   novel?: { chapters: NovelChapter[] };
-}): Pick<StoryInput, "format" | "content" | "novel"> {
+  novelContinued?: boolean;
+}): Pick<StoryInput, "format" | "content" | "novel" | "novelContinued"> {
   const format = input.format ?? "relato_corto";
 
   if (isNovelFormat(format)) {
@@ -44,6 +45,7 @@ export function buildStoryPayloadFields(input: {
       format: "novela",
       novel: { chapters },
       content: flattenNovelToContent(chapters),
+      novelContinued: input.novelContinued !== false,
     };
   }
 
@@ -51,6 +53,7 @@ export function buildStoryPayloadFields(input: {
     format,
     content: (input.content ?? "").trim(),
     novel: undefined,
+    novelContinued: undefined,
   };
 }
 

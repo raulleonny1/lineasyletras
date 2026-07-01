@@ -34,9 +34,24 @@ export const STORY_FORMAT_OPTIONS: {
   {
     value: "novela",
     label: "Novela",
-    description: "Organiza tu obra en capítulos y escenas.",
+    description: "Obra continuada por capítulos y escenas. Puedes ir publicando nuevas partes.",
   },
 ];
+
+export function isNovelContinued(story: {
+  format?: StoryFormat;
+  novelContinued?: boolean;
+}): boolean {
+  return story.format === "novela" && story.novelContinued !== false;
+}
+
+export function novelContinuityLabel(story: {
+  format?: StoryFormat;
+  novelContinued?: boolean;
+}): string {
+  if (story.format !== "novela") return "";
+  return isNovelContinued(story) ? "Novela continuada" : "Novela completa";
+}
 
 export function formatLabel(format?: StoryFormat): string {
   return STORY_FORMAT_OPTIONS.find((o) => o.value === (format ?? "relato_corto"))?.label ?? "Relato corto";

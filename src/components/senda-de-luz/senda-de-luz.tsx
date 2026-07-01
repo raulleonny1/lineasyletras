@@ -11,7 +11,9 @@ import { StoryComments } from "@/components/reading/story-comments";
 import { StoryCard } from "@/components/reading/story-card";
 import { UserAccountNav } from "@/components/auth/user-account-nav";
 import { StoryReaderBody } from "@/components/reading/story-reader-body";
-import { getStoryReadableText } from "@/lib/stories/novel";
+import { getStoryReadableText, countNovelChapters, isNovelStory } from "@/lib/stories/novel";
+import { isNovelContinued } from "@/types/story-format";
+import { NovelSeriesBanner } from "@/components/writing/novel-continuity-panel";
 import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
 
 function markStoryReadIfLoggedIn(storyId: string) {
@@ -593,6 +595,13 @@ export default function SendaDeLuz({
                     {selectedStory.author}
                   </span>
                 </p>
+
+                {isNovelStory(selectedStory) && (
+                  <NovelSeriesBanner
+                    continued={isNovelContinued(selectedStory)}
+                    chapterCount={countNovelChapters(selectedStory)}
+                  />
+                )}
 
                 {/* CONTROL DE LECTOR DE TEXTO A VOZ (AUDIO) */}
                 <div className="bg-slate-50/70 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 font-sans text-sm">

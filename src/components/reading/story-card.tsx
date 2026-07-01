@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { MouseEvent } from "react";
 import type { Story } from "@/types/story";
 import { StorySocialBar } from "@/components/reading/story-social-bar";
+import { NovelFormatBadge } from "@/components/writing/novel-continuity-panel";
 import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
 
 type Props = {
@@ -43,11 +44,7 @@ export function StoryCard({
                 ✨ Premium
               </span>
             )}
-            {story.format === "novela" && (
-              <span className="bg-violet-500/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                Novela
-              </span>
-            )}
+            <NovelFormatBadge format={story.format} novelContinued={story.novelContinued} />
             {story.format === "historia_corta" && (
               <span className="bg-white/25 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                 Historia corta

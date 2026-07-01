@@ -13,7 +13,10 @@ import {
 } from "@/lib/stories/story-body";
 import { CategorySelect } from "@/components/admin/category-select";
 import { StoryBodyEditor } from "@/components/writing/story-body-editor";
+import { NovelSeriesBanner } from "@/components/writing/novel-continuity-panel";
 import { StoryReaderBody } from "@/components/reading/story-reader-body";
+import { countNovelChapters, isNovelStory } from "@/lib/stories/novel";
+import { isNovelContinued } from "@/types/story-format";
 import { storyCoverHeaderClass, storyCoverHeaderStyle } from "@/lib/stories/cover";
 import { formatLabel } from "@/types/story-format";
 
@@ -32,6 +35,7 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
   const [chapters, setChapters] = useState<NovelChapter[]>(() =>
     initialNovelChaptersFromStory()
   );
+  const [novelContinued, setNovelContinued] = useState(true);
   const [tagsRaw, setTagsRaw] = useState("");
   const [color, setColor] = useState<string>(STORY_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -40,13 +44,19 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
 
   function handleFormatChange(next: StoryFormat) {
     setFormat(next);
-    if (next === "novela" && chapters.length === 0) {
-      setChapters([createEmptyChapter()]);
+    if (next === "novela") {
+      if (chapters.length === 0) setChapters([createEmptyChapter()]);
+      setNovelContinued(true);
     }
   }
 
   const previewStory = useMemo<Story>(() => {
-    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
+    const bodyFields = buildStoryPayloadFields({
+      format,
+      content,
+      novel: { chapters },
+      novelContinued,
+    });
     return {
       id: "preview",
       title: title.trim() || "Sin título",
@@ -72,7 +82,7 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
       source: "user",
       isUserCreated: true,
     };
-  }, [authorName, category, chapters, color, content, format, summary, tagsRaw, title]);
+  }, [authorName, category, chapters, color, content, format, novelContinued, summary, tagsRaw, title]);
 
   async function handleSave() {
     setError("");
@@ -89,7 +99,12 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
       return;
     }
 
-    const bodyFields = buildStoryPayloadFields({ format, content, novel: { chapters } });
+    const bodyFields = buildStoryPayloadFields({
+      format,
+      content,
+      novel: { chapters },
+      novelContinued,
+    });
 
     setSaving(true);
     try {
@@ -117,6 +132,7 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
       setContent("");
       setFormat("relato_corto");
       setChapters([createEmptyChapter()]);
+      setNovelContinued(true);
       setTagsRaw("");
     } catch {
       setError("Error de conexión.");
@@ -213,6 +229,8 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
             onContentChange={setContent}
             chapters={chapters}
             onChaptersChange={setChapters}
+            novelContinued={novelContinued}
+            onNovelContinuedChange={setNovelContinued}
             disabled={saving}
             textareaRows={10}
             inputClass={`${inputClass} font-serif leading-relaxed`}
@@ -256,6 +274,12 @@ export function UserStoryEditor({ authorName, onSaved, onClose }: Props) {
             </div>
 
             <div className="p-5 space-y-4">
+              {isNovelStory(previewStory) && (
+                <NovelSeriesBanner
+                  continued={isNovelContinued(previewStory)}
+                  chapterCount={countNovelChapters(previewStory)}
+                />
+              )}
               <p className="text-slate-500 text-sm italic border-l-4 border-indigo-200 pl-3">
                 {previewStory.summary}
               </p>

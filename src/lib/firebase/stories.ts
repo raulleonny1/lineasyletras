@@ -40,6 +40,8 @@ function mapDataToStory(id: string, data: DocumentData): Story {
     isUserCreated: data.source === "user",
     format: (data.format as Story["format"]) || "relato_corto",
     novel: data.novel as Story["novel"],
+    novelContinued:
+      data.format === "novela" ? data.novelContinued !== false : undefined,
   };
 }
 
@@ -201,6 +203,7 @@ export async function createStory(input: StoryInputWithAuthor): Promise<Story | 
     format: story.format ?? "relato_corto",
   };
   if (story.novel) payload.novel = story.novel;
+  if (story.format === "novela") payload.novelContinued = story.novelContinued !== false;
   if (input.authorId) payload.authorId = input.authorId;
 
   const adminDb = getAdminFirestore();
@@ -250,6 +253,7 @@ export async function updateStory(id: string, input: Partial<StoryInput>): Promi
   if (input.readTime !== undefined) payload.readTime = input.readTime;
   if (input.format !== undefined) payload.format = input.format;
   if (input.novel !== undefined) payload.novel = input.novel;
+  if (input.novelContinued !== undefined) payload.novelContinued = input.novelContinued;
   if ((input as StoryInputWithAuthor).authorId !== undefined) {
     payload.authorId = (input as StoryInputWithAuthor).authorId;
   }

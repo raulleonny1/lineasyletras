@@ -13,6 +13,8 @@ export interface Story {
   format?: import("@/types/story-format").StoryFormat;
   /** Estructura de capítulos y escenas (solo novelas). */
   novel?: import("@/types/story-format").NovelStructure;
+  /** Si true (por defecto en novelas), la obra sigue en curso con más capítulos por venir. */
+  novelContinued?: boolean;
   /** URL de portada recortada (Facebook, tarjetas). Opcional. */
   coverImageUrl?: string;
   published?: boolean;
