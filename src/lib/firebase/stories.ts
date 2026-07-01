@@ -90,6 +90,30 @@ async function queryPublishedWithClient(db: NonNullable<ReturnType<typeof getFir
   }
 }
 
+/** Historias creadas por un usuario (borradores y publicadas). */
+export async function fetchStoriesByAuthorId(authorId: string): Promise<Story[]> {
+  const adminDb = getAdminFirestore();
+  if (!adminDb) return [];
+
+  try {
+    const snapshot = await adminDb
+      .collection(COLLECTION)
+      .where("authorId", "==", authorId)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map(mapAdminDoc);
+  } catch (indexedError) {
+    console.warn("Índice authorId no disponible, usando consulta alternativa:", indexedError);
+    try {
+      const snapshot = await adminDb.collection(COLLECTION).where("authorId", "==", authorId).get();
+      return sortStoriesByRecency(snapshot.docs.map(mapAdminDoc));
+    } catch (error) {
+      console.error("Error al cargar historias del usuario:", error);
+      return [];
+    }
+  }
+}
+
 export async function fetchPublishedStories(): Promise<Story[]> {
   const adminDb = getAdminFirestore();
   if (adminDb) {
@@ -153,9 +177,11 @@ export async function fetchStoryById(id: string): Promise<Story | null> {
   }
 }
 
-export async function createStory(input: StoryInput): Promise<Story | null> {
+export type StoryInputWithAuthor = StoryInput & { authorId?: string };
+
+export async function createStory(input: StoryInputWithAuthor): Promise<Story | null> {
   const story = buildStoryFromInput(input);
-  const payload = {
+  const payload: Record<string, unknown> = {
     title: story.title,
     author: story.author,
     category: story.category,
@@ -170,6 +196,7 @@ export async function createStory(input: StoryInput): Promise<Story | null> {
     premium: story.premium ?? false,
     source: story.source ?? "admin",
   };
+  if (input.authorId) payload.authorId = input.authorId;
 
   const adminDb = getAdminFirestore();
   if (!adminDb) return null;
@@ -216,6 +243,9 @@ export async function updateStory(id: string, input: Partial<StoryInput>): Promi
   if (input.premium !== undefined) payload.premium = input.premium;
   if (input.date !== undefined) payload.date = input.date;
   if (input.readTime !== undefined) payload.readTime = input.readTime;
+  if ((input as StoryInputWithAuthor).authorId !== undefined) {
+    payload.authorId = (input as StoryInputWithAuthor).authorId;
+  }
 
   const adminDb = getAdminFirestore();
   if (!adminDb) return false;

@@ -25,7 +25,7 @@ export type StoryInput = Omit<Story, "id" | "readTime" | "date"> & {
   date?: string;
 };
 
-export type ActiveTab = "explorar" | "leer" | "asistente" | "favoritos";
+export type ActiveTab = "explorar" | "leer" | "favoritos";
 export type ThemeMode = "light" | "sepia" | "dark";
 export type FontSize = "text-base" | "text-lg" | "text-xl" | "text-2xl";
 export type AiAssistantMode = "bosquejo" | "pulir" | "devocional";

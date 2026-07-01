@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Lora } from "next/font/google";
 import { FirebaseAnalytics } from "@/components/providers/firebase-analytics";
+import { UserAuthProvider } from "@/components/providers/user-auth-provider";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -51,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${geistSans.variable} ${lora.variable} h-full`}>
       <body className="min-h-full flex flex-col font-sans overscroll-none">
-        {children}
+        <UserAuthProvider>{children}</UserAuthProvider>
         <FirebaseAnalytics />
       </body>
     </html>

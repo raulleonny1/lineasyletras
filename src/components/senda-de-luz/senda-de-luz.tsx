@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback, type MouseEvent } from "react";
-import type { Story, ActiveTab, ThemeMode, FontSize, AiAssistantMode } from "@/types/story";
+import type { Story, ActiveTab, ThemeMode, FontSize } from "@/types/story";
 import { INITIAL_STORIES } from "@/data/initial-stories";
 import { LineasYLetrasLogo } from "@/components/brand/lineas-y-letras-logo";
 import { filterStories } from "@/lib/stories/utils";
-import { saveAdminDraft } from "@/lib/admin/draft-storage";
 import { StorySocialBar } from "@/components/reading/story-social-bar";
 import { StoryComments } from "@/components/reading/story-comments";
 import { StoryCard } from "@/components/reading/story-card";
+import { UserAccountNav } from "@/components/auth/user-account-nav";
 import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
+
+function markStoryReadIfLoggedIn(storyId: string) {
+  fetch("/api/user/library/read", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ storyId }),
+  }).catch(() => {});
+}
 
 const STORAGE_FAVORITES = "lineas_letras_favorites";
 const LEGACY_FAVORITES = "senda_luz_favorites";
@@ -43,12 +51,6 @@ export default function SendaDeLuz({
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   const [notification, setNotification] = useState("");
-
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiResult, setAiResult] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiAssistantMode, setAiAssistantMode] = useState<AiAssistantMode>("bosquejo");
-  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -107,6 +109,7 @@ export default function SendaDeLuz({
     if (story) {
       setSelectedStory(story);
       setActiveTab("leer");
+      markStoryReadIfLoggedIn(story.id);
     }
   }, [hydrated, initialStoryId, stories]);
 
@@ -130,6 +133,7 @@ export default function SendaDeLuz({
   const handleSelectStory = (story: Story) => {
     setSelectedStory(story);
     setActiveTab("leer");
+    markStoryReadIfLoggedIn(story.id);
   };
 
   const toggleFavorite = (id: string, e?: MouseEvent) => {
@@ -197,81 +201,6 @@ export default function SendaDeLuz({
     }
   };
 
-  const generateWithAI = async () => {
-    if (!aiPrompt.trim()) {
-      setAiError(
-        "Por favor, escribe una idea o palabra clave para inspirar a la Inteligencia Artificial."
-      );
-      return;
-    }
-
-    setAiLoading(true);
-    setAiError("");
-    setAiResult("");
-
-    try {
-      const response = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt, mode: aiAssistantMode }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setAiError(
-          data.error ||
-            "Hubo un error de conexión al generar la inspiración de la IA. Por favor, vuelve a intentarlo en unos instantes."
-        );
-        return;
-      }
-
-      setAiResult(data.text);
-    } catch (err) {
-      setAiError(
-        "Hubo un error de conexión al generar la inspiración de la IA. Por favor, vuelve a intentarlo en unos instantes."
-      );
-      console.error(err);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const applyAiResultToEditor = () => {
-    if (!aiResult) return;
-
-    const lines = aiResult.split("\n");
-    let titleGuess = "Inspiración del Corazón";
-    for (const line of lines) {
-      const cleanLine = line.replace(/[#*_\-\-]/g, "").trim();
-      if (
-        cleanLine.toLowerCase().startsWith("título:") ||
-        cleanLine.toLowerCase().startsWith("titulo:")
-      ) {
-        titleGuess = cleanLine.replace(/titulo:|título:/gi, "").trim();
-        break;
-      } else if (
-        cleanLine.length > 5 &&
-        cleanLine.length < 50 &&
-        (cleanLine.startsWith("El ") ||
-          cleanLine.startsWith("La ") ||
-          cleanLine.startsWith("Los ") ||
-          cleanLine.startsWith("Un "))
-      ) {
-        titleGuess = cleanLine;
-        break;
-      }
-    }
-
-    saveAdminDraft({
-      title: titleGuess,
-      content: aiResult,
-      category:
-        aiAssistantMode === "devocional" ? "Lecciones Cristianas" : "Literatura Creativa",
-    });
-    window.location.href = "/admin/escribir";
-  };
-
   const filteredStories = filterStories(stories, {
     search: searchQuery,
     category: selectedCategory,
@@ -326,15 +255,6 @@ export default function SendaDeLuz({
             </button>
             <button
               onClick={() => {
-                setActiveTab("asistente");
-                setSelectedStory(null);
-              }}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "asistente" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100"}`}
-            >
-              ✨ Asistente IA
-            </button>
-            <button
-              onClick={() => {
                 setActiveTab("favoritos");
                 setSelectedStory(null);
               }}
@@ -348,6 +268,7 @@ export default function SendaDeLuz({
             >
               ⚙️ Admin
             </Link>
+            <UserAccountNav />
           </nav>
 
           {/* Verso Inspirador Rápido (Encabezado) */}
@@ -359,6 +280,9 @@ export default function SendaDeLuz({
               &quot;Lámpara es a mis pies tu palabra, y lumbrera a mi camino.&quot;
             </p>
           </div>
+        </div>
+        <div className="lg:hidden max-w-6xl mx-auto px-4 pb-2 flex justify-end">
+          <UserAccountNav compact />
         </div>
       </header>
 
@@ -778,209 +702,9 @@ export default function SendaDeLuz({
                 ¿Te ha gustado esta lección de vida?
               </h4>
               <p className="text-slate-600 text-sm max-w-lg mx-auto leading-relaxed">
-                El conocimiento espiritual y literario se multiplica al compartirse. Usa el
-                asistente de IA para inspirarte.
+                El conocimiento espiritual y literario se multiplica al compartirse. Guarda esta
+                historia en tus favoritos o compártela con alguien que la necesite.
               </p>
-              <div className="pt-2 flex justify-center">
-                <button
-                  onClick={() => setActiveTab("asistente")}
-                  className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-indigo-500 transition-all"
-                >
-                  ✨ Preguntar al Asistente IA
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TABA: ASISTENTE DE IA (GEMINI POWERED) */}
-        {activeTab === "asistente" && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            {/* Header del Asistente */}
-            <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-sky-500 text-white rounded-3xl p-6 md:p-8 shadow-md relative overflow-hidden">
-              <div className="absolute right-0 bottom-0 translate-y-6 translate-x-6 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-
-              <div className="relative z-10 space-y-2">
-                <span className="bg-white/20 text-white px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest uppercase">
-                  Tecnología de Vanguardia
-                </span>
-                <h2 className="text-2xl md:text-3xl font-extrabold font-serif">
-                  Asistente Literario de Inteligencia Artificial
-                </h2>
-                <p className="text-indigo-100 text-sm leading-relaxed font-sans max-w-2xl">
-                  ¿Te falta inspiración o quieres darle un toque literario refinado a tu idea?
-                  Selecciona una modalidad de escritura, escribe tu idea clave y deja que el modelo
-                  Gemini cree una joya literaria para ti.
-                </p>
-              </div>
-            </div>
-
-            {/* CONTENEDOR DE OPCIONES Y PROMPTS */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              {/* Modos del Asistente */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  ¿En qué te asisto hoy?
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <button
-                    onClick={() => {
-                      setAiAssistantMode("bosquejo");
-                      setAiResult("");
-                    }}
-                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${aiAssistantMode === "bosquejo" ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/10" : "border-slate-200 hover:border-slate-300"}`}
-                  >
-                    <span className="text-base">📋</span>
-                    <div className="mt-2">
-                      <p className="font-bold text-xs text-slate-800">Estructurar Bosquejo</p>
-                      <p className="text-[10px] text-slate-500">Esquema narrativo e ideas clave</p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setAiAssistantMode("devocional");
-                      setAiResult("");
-                    }}
-                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${aiAssistantMode === "devocional" ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/10" : "border-slate-200 hover:border-slate-300"}`}
-                  >
-                    <span className="text-base">🕊️</span>
-                    <div className="mt-2">
-                      <p className="font-bold text-xs text-slate-800">Crear Devocional / Lección</p>
-                      <p className="text-[10px] text-slate-500">
-                        Reflexión espiritual y aplicación
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setAiAssistantMode("pulir");
-                      setAiResult("");
-                    }}
-                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${aiAssistantMode === "pulir" ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/10" : "border-slate-200 hover:border-slate-300"}`}
-                  >
-                    <span className="text-base">✨</span>
-                    <div className="mt-2">
-                      <p className="font-bold text-xs text-slate-800">Pulir Prosa & Redacción</p>
-                      <p className="text-[10px] text-slate-500">Perfecciona tu borrador inicial</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Entrada de Texto */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  {aiAssistantMode === "pulir"
-                    ? "Pega tu borrador para refinarlo:"
-                    : "Escribe las palabras o tema inspirador:"}
-                </label>
-                <textarea
-                  rows={4}
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder={
-                    aiAssistantMode === "bosquejo"
-                      ? "Ej: Una historia sobre vencer el miedo a los cambios basados en la parábola de la fe..."
-                      : aiAssistantMode === "devocional"
-                        ? "Ej: Un pasaje sobre la paciencia, Dios guardándonos en los momentos de soledad..."
-                        : "Pega tu texto aquí para que la IA mejore su redacción, vocabulario, impacto y belleza..."
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-slate-700 text-sm leading-relaxed"
-                ></textarea>
-
-                {/* Sugerencias Rápidas */}
-                <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">
-                    Sugerencias:
-                  </span>
-                  {["El Valor del Perdón", "Paz en la tormenta", "La vasija rota", "Paciencia activa"].map(
-                    (sug) => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onClick={() => setAiPrompt(sug)}
-                        className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded"
-                      >
-                        {sug}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Botón de Generación */}
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={generateWithAI}
-                  disabled={aiLoading}
-                  className={`w-full sm:w-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold px-6 py-3.5 rounded-xl text-sm shadow-md transition-all flex items-center justify-center space-x-2 ${aiLoading ? "opacity-85 cursor-not-allowed" : ""}`}
-                >
-                  {aiLoading ? (
-                    <>
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <span>Inspirando al escritor celestial...</span>
-                    </>
-                  ) : (
-                    <span>✨ Generar Inspiración Literaria</span>
-                  )}
-                </button>
-              </div>
-
-              {aiError && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl text-sm font-semibold">
-                  ⚠️ {aiError}
-                </div>
-              )}
-
-              {/* RESULTADO DE LA IA */}
-              {aiResult && (
-                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-4 animate-fadeIn">
-                  <div className="flex items-center justify-between border-b pb-3 border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block">
-                      ✨ Inspiración Encontrada
-                    </span>
-                    <button
-                      type="button"
-                      onClick={applyAiResultToEditor}
-                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center space-x-1"
-                    >
-                      ✍️ Llevar a Escribir
-                    </button>
-                  </div>
-
-                  {/* Cuerpo de Texto Generado */}
-                  <div className="font-serif leading-relaxed text-slate-800 text-sm whitespace-pre-line text-justify max-h-96 overflow-y-auto pr-2 scrollbar-thin">
-                    {aiResult}
-                  </div>
-
-                  <div className="text-xs text-slate-400 italic">
-                    Esta sugerencia literaria es generada para inspirar tu pluma. Puedes copiarla,
-                    editarla o publicarla como propia.
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -1108,30 +832,6 @@ export default function SendaDeLuz({
           </svg>
           <span className="text-[10px] font-bold mt-1">Admin</span>
         </Link>
-
-        <button
-          onClick={() => {
-            setActiveTab("asistente");
-            setSelectedStory(null);
-          }}
-          className={`flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all touch-target flex-1 ${activeTab === "asistente" ? "text-indigo-600 bg-indigo-50" : "text-slate-500"}`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-5 h-5"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.096L15 15l-5.187.904zM18 10.5l-.563-2.688L14.75 7.25l2.688-.563L18 4l.563 2.688 2.688.563-2.688.563L18 10.5z"
-            />
-          </svg>
-          <span className="text-[10px] font-bold mt-1">Asistente IA</span>
-        </button>
 
         <button
           onClick={() => {

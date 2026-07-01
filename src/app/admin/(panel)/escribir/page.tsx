@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { StoryForm } from "@/components/admin/story-form";
 import type { Story, StoryInput } from "@/types/story";
 import { loadAdminDraft, clearAdminDraft } from "@/lib/admin/draft-storage";
@@ -65,17 +64,11 @@ export default function AdminEscribirPage() {
             compartir en Facebook con imagen.
           </p>
         </div>
-        <Link
-          href="/"
-          className="text-sm font-semibold text-indigo-600 hover:underline shrink-0"
-        >
-          ✨ Usar Asistente IA en el sitio
-        </Link>
       </div>
 
       {imported && (
         <div className="bg-violet-50 border border-violet-200 text-violet-800 text-sm p-3 rounded-xl">
-          Texto importado desde el Asistente IA. Revisa y publica cuando esté listo.
+          Borrador cargado. Revisa y publica cuando esté listo.
         </div>
       )}
 

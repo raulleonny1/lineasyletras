@@ -16,6 +16,15 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Cuentas de lectores — solo servidor (Admin SDK)
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /reading/{storyId} {
+        allow read, write: if false;
+      }
+    }
+
     // Denegar acceso a cualquier otra colección
     match /{document=**} {
       allow read, write: if false;
