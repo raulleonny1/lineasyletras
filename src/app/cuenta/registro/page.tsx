@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthField, AuthShell, inputClass } from "@/components/auth/auth-shell";
 import { PinKeypad } from "@/components/auth/pin-keypad";
+import { PinSetupSteps } from "@/components/auth/pin-setup-steps";
 import { COUNTRIES } from "@/data/countries";
 import { useUserAuth } from "@/components/providers/user-auth-provider";
 import type { UserGender } from "@/types/user";
@@ -121,7 +122,7 @@ export default function RegistroPage() {
   return (
     <AuthShell
       title="Crear cuenta"
-      subtitle="Únete a Líneas y Letras. Crearás un código personal de 4 dígitos para ingresar."
+      subtitle="Completa tus datos y crea un código de 4 dígitos (lo ingresarás dos veces para confirmarlo)."
       footer={
         <p className="text-center text-sm text-slate-500">
           ¿Ya tienes cuenta?{" "}
@@ -234,34 +235,39 @@ export default function RegistroPage() {
           </div>
         </AuthField>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-bold text-slate-500 uppercase">
-              {pinStep === "create" ? "Código de acceso (4 dígitos) *" : "Repite tu código *"}
-            </p>
-            {pinReady && (
-              <span className="text-xs font-semibold text-emerald-600">✓ Configurado</span>
-            )}
-          </div>
-          <p className="text-xs text-slate-400">
-            {pinStep === "create"
-              ? "Elige un código que recuerdes. Lo usarás para ingresar."
-              : "Introduce el mismo código otra vez."}
-          </p>
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <PinSetupSteps step={pinStep} pinReady={pinReady} />
+
+          {pinStep === "confirm" && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-center">
+              <p className="text-sm font-bold text-amber-900">⚠️ Repite tu código</p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Introduce otra vez los mismos 4 dígitos del paso anterior.
+              </p>
+            </div>
+          )}
+
           <PinKeypad
             value={pinStep === "create" ? pin : pinConfirm}
             onChange={handlePinChange}
             onComplete={handlePinComplete}
             disabled={saving}
           />
+
           {pinStep === "confirm" && (
             <button
               type="button"
               onClick={resetPinFlow}
-              className="text-xs font-semibold text-indigo-600 hover:underline"
+              className="w-full text-xs font-semibold text-indigo-600 hover:underline py-1"
             >
-              Cambiar código
+              ← Volver al paso 1 y cambiar código
             </button>
+          )}
+
+          {pinReady && (
+            <p className="text-center text-sm font-semibold text-emerald-600">
+              ✓ Código confirmado correctamente
+            </p>
           )}
         </div>
 
@@ -282,7 +288,6 @@ export default function RegistroPage() {
               checked={privacyAccepted}
               onChange={(e) => setPrivacyAccepted(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600"
-              required
             />
             <span className="text-xs text-amber-900 font-medium">
               He leído el aviso y acepto el tratamiento de mis datos.
@@ -292,11 +297,16 @@ export default function RegistroPage() {
 
         <button
           type="submit"
-          disabled={saving}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl text-sm transition-colors"
+          disabled={saving || !privacyAccepted}
+          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-sm transition-colors"
         >
           {saving ? "Creando cuenta..." : "Crear mi cuenta"}
         </button>
+        {!privacyAccepted && (
+          <p className="text-center text-xs text-slate-400">
+            Marca la casilla del aviso de privacidad para activar el botón.
+          </p>
+        )}
       </form>
     </AuthShell>
   );
