@@ -74,6 +74,16 @@ export default function AdminStoriesPage() {
     }
   }
 
+  async function togglePremium(story: Story) {
+    if (story.isExample) return;
+    const res = await fetch(`/api/admin/stories/${story.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ premium: !story.premium }),
+    });
+    if (res.ok) loadStories();
+  }
+
   async function handleDelete(id: string, title: string) {
     if (!confirm(`¿Eliminar "${title}"?`)) return;
     const res = await fetch(`/api/admin/stories/${id}`, { method: "DELETE" });
@@ -191,22 +201,38 @@ export default function AdminStoriesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {story.isExample ? (
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
-                        Ejemplo
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => togglePublish(story)}
-                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                          story.published !== false
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {story.published !== false ? "Publicada" : "Borrador"}
-                      </button>
-                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {story.isExample ? (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                          Ejemplo
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => togglePublish(story)}
+                            className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                              story.published !== false
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {story.published !== false ? "Publicada" : "Borrador"}
+                          </button>
+                          {story.published !== false && (
+                            <button
+                              onClick={() => togglePremium(story)}
+                              className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                story.premium
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-slate-100 text-slate-500 hover:bg-amber-50"
+                              }`}
+                            >
+                              {story.premium ? "✨ Premium" : "Marcar premium"}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                     {story.isExample ? (

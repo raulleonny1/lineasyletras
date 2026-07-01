@@ -12,6 +12,8 @@ export interface Story {
   /** URL de portada recortada (Facebook, tarjetas). Opcional. */
   coverImageUrl?: string;
   published?: boolean;
+  /** Destacada en la sección Premium del inicio */
+  premium?: boolean;
   source?: "curated" | "admin" | "user";
   isUserCreated?: boolean;
   /** Historias de ejemplo del código; aún no están en Firebase */

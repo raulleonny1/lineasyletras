@@ -9,6 +9,7 @@ import { filterStories } from "@/lib/stories/utils";
 import { saveAdminDraft } from "@/lib/admin/draft-storage";
 import { StorySocialBar } from "@/components/reading/story-social-bar";
 import { StoryComments } from "@/components/reading/story-comments";
+import { StoryCard } from "@/components/reading/story-card";
 import { storyCoverHeaderClass, storyCoverHeaderStyle, resolveStoryCoverSrc } from "@/lib/stories/cover";
 
 const STORAGE_FAVORITES = "lineas_letras_favorites";
@@ -278,6 +279,9 @@ export default function SendaDeLuz({
     publishedOnly: true,
   });
 
+  const premiumStories = filteredStories.filter((story) => story.premium);
+  const regularStories = filteredStories.filter((story) => !story.premium);
+
   const favoriteStories = stories.filter((story) => favorites.includes(story.id));
 
   const getThemeClasses = () => {
@@ -403,6 +407,41 @@ export default function SendaDeLuz({
               </div>
             </div>
 
+            {/* SECCIÓN PREMIUM */}
+            {premiumStories.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600">
+                      Selección especial
+                    </p>
+                    <h2 className="text-2xl font-bold font-serif text-slate-900">
+                      ✨ Historias Premium
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Relatos destacados elegidos para inspirarte con profundidad.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-violet-50 p-4 sm:p-5 shadow-sm">
+                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x scroll-touch">
+                    {premiumStories.map((story) => (
+                      <StoryCard
+                        key={story.id}
+                        story={story}
+                        isFavorite={favorites.includes(story.id)}
+                        onSelect={handleSelectStory}
+                        onToggleFavorite={toggleFavorite}
+                        onNotify={showNotification}
+                        featured
+                      />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* BARRA DE FILTRADO Y BÚSQUEDA */}
             {tagFilter && (
               <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
@@ -467,100 +506,25 @@ export default function SendaDeLuz({
             </div>
 
             {/* CUADRICULA DE HISTORIAS */}
-            {filteredStories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredStories.map((story) => {
-                  const isFav = favorites.includes(story.id);
-                  return (
-                    <article
+            {regularStories.length > 0 ? (
+              <div className="space-y-3">
+                {premiumStories.length > 0 && (
+                  <h2 className="text-lg font-bold font-serif text-slate-800">Más historias</h2>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {regularStories.map((story) => (
+                    <StoryCard
                       key={story.id}
-                      onClick={() => handleSelectStory(story)}
-                      className="bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-indigo-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col cursor-pointer group"
-                    >
-                      {/* Cabecera visual */}
-                      <div
-                        className={`${storyCoverHeaderClass(story)} p-4 flex flex-col justify-between`}
-                        style={storyCoverHeaderStyle(story)}
-                      >
-                        <div className="flex justify-between items-start">
-                          <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            {story.category}
-                          </span>
-
-                          {/* Botón Guardar / Favorito */}
-                          <button
-                            onClick={(e) => toggleFavorite(story.id, e)}
-                            className="bg-white/90 hover:bg-white text-slate-700 p-2 rounded-full shadow-sm hover:scale-115 transition-all focus:outline-none"
-                            aria-label="Guardar historia"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill={isFav ? "currentColor" : "none"}
-                              stroke={isFav ? "none" : "currentColor"}
-                              strokeWidth={2.5}
-                              className={`w-4 h-4 ${isFav ? "text-rose-500" : "text-slate-600"}`}
-                            >
-                              <path d="M11.645 20.91l-.007-.003-.003-.001a15.69 15.69 0 01-4.323-2.903C4.84 15.515 3 12.393 3 9.543 3 6.042 5.56 3 9 3c1.905 0 3.511 1.053 4.5 2.652L14.5 7.148l1.001-1.496C16.49 4.053 18.095 3 20 3c3.44 0 6 3.042 6 6.543 0 2.85-1.84 5.972-4.312 8.463A15.69 15.69 0 0115.355 20.9l-.007.003-.003.001a.752.752 0 01-.704 0z" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        <div className="text-white/85 text-xs flex items-center gap-2">
-                          <span>⏱️ {story.readTime}</span>
-                          <span>•</span>
-                          <span>✍️ {story.author}</span>
-                        </div>
-                      </div>
-
-                      {/* Contenido de la Tarjeta */}
-                      <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <h3 className="font-serif text-lg font-bold text-slate-900 group-hover:text-indigo-700 transition-colors leading-snug">
-                            {story.title}
-                          </h3>
-                          <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed font-sans">
-                            {story.summary}
-                          </p>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                          <StorySocialBar
-                            storyId={story.id}
-                            title={story.title}
-                            summary={story.summary}
-                            coverImageUrl={resolveStoryCoverSrc(story)}
-                            isFavorite={isFav}
-                            onToggleFavorite={toggleFavorite}
-                            onNotify={showNotification}
-                            compact
-                          />
-                        </div>
-
-                        {/* Etiquetas */}
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {story.tags.slice(0, 3).map((tag) => (
-                            <Link
-                              key={tag}
-                              href={`/etiqueta/${encodeURIComponent(tag.toLowerCase())}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded border border-slate-100 transition-colors"
-                            >
-                              #{tag}
-                            </Link>
-                          ))}
-                          {story.tags.length > 3 && (
-                            <span className="text-slate-400 text-[10px] px-1.5 py-0.5">
-                              +{story.tags.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                      story={story}
+                      isFavorite={favorites.includes(story.id)}
+                      onSelect={handleSelectStory}
+                      onToggleFavorite={toggleFavorite}
+                      onNotify={showNotification}
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
+            ) : premiumStories.length === 0 ? (
               <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                 <span className="text-4xl">🌾</span>
                 <h3 className="text-lg font-bold text-slate-700 mt-3 font-serif">
@@ -580,7 +544,7 @@ export default function SendaDeLuz({
                   Restablecer filtros
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 

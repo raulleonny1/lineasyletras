@@ -36,6 +36,7 @@ export function buildStoryFromInput(input: StoryInput, id?: string): Story {
     color: input.color || pickRandomColor(),
     coverImageUrl: input.coverImageUrl,
     published: input.published ?? false,
+    premium: input.premium ?? false,
     source: input.source ?? "admin",
   };
 }

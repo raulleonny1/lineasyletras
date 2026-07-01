@@ -24,6 +24,7 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
   const [tagsRaw, setTagsRaw] = useState(initial?.tags.join(", ") ?? "");
   const [color, setColor] = useState(initial?.color ?? STORY_COLORS[0]);
   const [published, setPublished] = useState(initial?.published ?? false);
+  const [premium, setPremium] = useState(initial?.premium ?? false);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [coverRemoved, setCoverRemoved] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(initial?.coverImageUrl ?? null);
@@ -62,6 +63,7 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
           tags: parseTagsInput(tagsRaw),
           color,
           published,
+          premium,
           readTime: computeReadTime(content),
           source: "admin",
           coverImageUrl: coverRemoved ? undefined : initial?.coverImageUrl,
@@ -180,17 +182,35 @@ export function StoryForm({ initial, onSubmit, submitLabel }: StoryFormProps) {
             </select>
           </div>
 
-          <div className="flex items-center gap-3 pt-6">
-            <input
-              id="published"
-              type="checkbox"
-              checked={published}
-              onChange={(e) => setPublished(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-            />
-            <label htmlFor="published" className="text-sm font-medium text-slate-700">
-              Publicar en el sitio (visible en inicio y etiquetas)
-            </label>
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center gap-3">
+              <input
+                id="published"
+                type="checkbox"
+                checked={published}
+                onChange={(e) => setPublished(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-indigo-600"
+              />
+              <label htmlFor="published" className="text-sm font-medium text-slate-700">
+                Publicar en el sitio (visible en inicio y etiquetas)
+              </label>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                id="premium"
+                type="checkbox"
+                checked={premium}
+                onChange={(e) => setPremium(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-amber-600 mt-0.5"
+              />
+              <label htmlFor="premium" className="text-sm font-medium text-slate-700">
+                <span className="text-amber-700 font-bold">✨ Historia Premium</span>
+                <span className="block text-xs text-slate-500 font-normal mt-0.5">
+                  Aparece destacada en la sección Premium del inicio (arriba del catálogo).
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 

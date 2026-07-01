@@ -34,6 +34,7 @@ function mapDataToStory(id: string, data: DocumentData): Story {
     color: data.color as string,
     coverImageUrl: normalizeCoverImageUrl(id, rawCover, hasEmbeddedData),
     published: data.published !== false,
+    premium: Boolean(data.premium),
     source: (data.source as Story["source"]) || "admin",
     isUserCreated: data.source === "user",
   };
@@ -166,6 +167,7 @@ export async function createStory(input: StoryInput): Promise<Story | null> {
     color: story.color,
     coverImageUrl: story.coverImageUrl ?? null,
     published: story.published ?? false,
+    premium: story.premium ?? false,
     source: story.source ?? "admin",
   };
 
@@ -211,6 +213,7 @@ export async function updateStory(id: string, input: Partial<StoryInput>): Promi
   if (input.color !== undefined) payload.color = input.color;
   if (input.coverImageUrl !== undefined) payload.coverImageUrl = input.coverImageUrl;
   if (input.published !== undefined) payload.published = input.published;
+  if (input.premium !== undefined) payload.premium = input.premium;
   if (input.date !== undefined) payload.date = input.date;
   if (input.readTime !== undefined) payload.readTime = input.readTime;
 
