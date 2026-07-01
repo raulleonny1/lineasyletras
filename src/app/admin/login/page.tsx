@@ -74,8 +74,8 @@ function LoginForm() {
                 spellCheck={false}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 bg-slate-50 font-mono text-base tracking-wide"
-                placeholder="Tu contraseña (ej. admin123)"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 bg-slate-50 text-base"
+                placeholder="Introduce tu contraseña"
                 required
                 autoFocus
               />
